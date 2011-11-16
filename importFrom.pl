@@ -16,6 +16,15 @@ use File::MimeInfo;
 
 my $file = "HW1.docx";
 
+# Look for file extension
+$exension 
+if( $file =~ .\.+ )
+{
+   print $extension;
+}
 
-my $mime_type = mimetype($file);
+# If file contains no extension
+
+# my $mime_type = mimetype($file);
+# print $mime_type;
 
