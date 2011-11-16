@@ -7,13 +7,61 @@
 
 my $global_status="Main";
 
+sub Table_Parse
+{
+	my ($text, $schema) = @_; 
+	$text =~ s/\\hfill|\\hline//g;
+	$text =~ s/\n//g;
+	$text =~ s/\\\\/\n/g;
+	$schema =~ s/\|//g;
+	$schema =~ s/\s+//g;
+	my $returntext = "";
+	my @splitline = split /\n/, $text;
+	my @splittext;
+	my @splitschema= split '', $schema;
+	my $align;
+		
+		print $schema;
+		
+	for $i (0..$#splitline)
+	{
+		if(!($splitline[$i] =~ /^\s*$/))
+		{
+		$returntext .= "\n<tr>\n";
+		@splittext = split /&/, @splitline[$i];
+		for $j (0..$#splittext)
+		{
+			print "\nPING!:@splitschema[$j]\n";
+			if( @splitschema[$j] eq "l")
+			{
+				$align = "left";
+			}
+			elsif( @splitschema[$j] eq "c")
+			{
+				$align = "center";
+			}
+			elsif( @splitschema[$j] eq "r")
+			{
+				$align = "right";
+			}
+			else
+			{
+				$align = "center";
+			}
+			
+			$returntext .= "<td align = '".$align."'>".$splittext[$j]."</td>";
+		}
+		$returntext .= "\n</tr>\n";
+		}
+	}
+	
+	return $returntext;
+}
+
 sub New_Parse
 {
 	my ($text,@status) = @_;
 	my @oldstatus = @status;
-		print "\n(-----------------------------------------------)\n";
-		print @status;
-		print "\n(-----------------------------------------------)\n";
 		
 			if($text=~ /^\s*$/)#Whitespace
 			{
@@ -31,6 +79,10 @@ sub New_Parse
 			elsif($text=~ /((\n|.)*)\\begin\{equation\}((\n|.)*)\\end\{equation\}((\n|.)*)/)
 			{
 				return New_Parse($1,@status)."\n%BEGINLATEX%\n<br>\n".$3."\n<br>\n%ENDLATEX%\n".New_Parse($5,@status);
+			}
+			elsif($text=~ /((\n|.)*)\\begin\{tabular\}\{((.)*)\}((\n|.)*)\\end\{tabular\}((\n|.)*)/)
+			{
+				return New_Parse($1,@status)."\n<table border=1>".Table_Parse($5,$3)."</table>\n".New_Parse($7,@status);
 			}
 			elsif($text=~ /((\n|.)*)\\begin\{enumerate\}((\n|.)*)\\end\{enumerate\}((\n|.)*)/)
 			{
