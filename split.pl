@@ -23,6 +23,13 @@ sub parse_line
 		}
 		$parseline .= "IMAGE{".$width.",".$height."} ".parse_line($extra);
 	}
+	elsif ($line =~ /(((\s){3})+)\*(\s)(.*)/)
+	{
+		my $extra = $5;
+		my $stringdepth = $1;
+		my $depth=length($stringdepth)/3;
+		$parseline .= "Bullet{".$depth."} ".parse_line($extra);
+	}
 	else
 	{
 		@linesplit = split /\s/, $line;
