@@ -17,10 +17,27 @@ use File::MimeInfo;
 my $file = "HW1.docx";
 
 # Look for file extension
-$exension 
-if( $file =~ .\.+ )
+$file =~ /\.([a-zA-Z0-9]*)/ ;
+if ( $1 == "docx" )
 {
-   print $extension;
+  print "this is a docx file\n";
+  # Call docx importer
+}
+elsif ( $1 == "tex" )
+{
+  print "this is a tex file\n";
+}
+elsif ( $1 == "txt" )
+{
+  print "this is a txt file\n";
+}
+elsif ( $1 == "csv" )
+{
+  print "this is a csv file\n";
+}
+else
+{
+  print "unsupported file type, nub!";
 }
 
 # If file contains no extension
