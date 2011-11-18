@@ -1,0 +1,18 @@
+---++ A Taste of TWiki \\
+sentence part 2
+
+<img src="%ATTACHURL%/hula.gif" alt="Hula girl"  width="113" height="111" align="right" /> more after this
+<br/>
+<br />
+<img src="%ATTACHURL%/hula.gif" alt="Hula girl"  width="113" height="119" align="right" />
+
+---++++++ find me this is *bold*
+
+   *this is not
+
+A Wiki is like a web site, except that you can edit the content in your browser
+
+   * "Wiki" is short for "wiki wiki", the Hawaiian for "Quick"
+      * The idea originates from [[http://www.hyperdictionary.com/computing/hypercard][Macintosh Hypercard]], via [[http://www.c2.com/cgi/wiki?WardCunningham][Ward Cunningham]]
+   * In Ward's words, Wiki is _"the simplest online database that could possibly work"_
+   * A Wiki is basically a shared, online, persistent whiteboard

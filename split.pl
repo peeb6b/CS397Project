@@ -8,26 +8,37 @@ sub parse_line
 	my $textsize = 0;
 	my $textstatus= 0;
 	
-	if($line =~ m/\<img(.*)(\>)?/)
+	if($line =~ /\<img(.*)(\>)+(.*)/)
 	{
-		print "Ping!";
 		my ($width, $height) = 0;
-		if($2 =~ /width=\"(\d*)\"/)
+		my $holder = $1;
+		my $extra = $3;
+		if($1 =~ /width=\"(\d*)\"/)
 		{
 			$width = $1;
 		}
-		if($2 =~ /height=\"(\d*)\"/)
+		if($holder =~ /height=\"(\d*)\"/)
 		{
 			$height = $1;
 		}
-		$parseline .= "IMAGE{".$width.",".$height."} ".parse_line($5);
+		$parseline .= "IMAGE{".$width.",".$height."} ".parse_line($extra);
+	}
+	elsif ($line =~ /(((\s){3})+)\*(\s)(.*)/)
+	{
+		my $extra = $5;
+		my $stringdepth = $1;
+		my $depth=length($stringdepth)/3;
+		$parseline .= "Bullet{".$depth."} ".parse_line($extra);
 	}
 	else
 	{
 		@linesplit = split /\s/, $line;
 		for $i (0..$#linesplit)
 		{
-			if($linesplit[$i] =~ /(---(\+{1,6}))/)
+			if($linesplit[$i] =~ /^\s*$/)
+			{
+			}
+			elsif($linesplit[$i] =~ /(---(\+{1,6}))/)
 			{	
 				$textsize = 7 - length($2);
 			}
