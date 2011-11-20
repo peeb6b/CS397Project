@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 
+my $table = 0;
+
 sub parse_line
 {
 	my $line = @_[0];
@@ -7,6 +9,23 @@ sub parse_line
 	my $parseline = "";
 	my $textsize = 0;
 	my $textstatus= 0;
+	
+	if($line =~ /\|(.)*\|/ || $table)
+	{
+		if($line =~ /\|(.)*\|/)
+		{
+			if(!$table)
+			{
+				$parseline .= "TABLE{0,";
+			}
+			$table++;
+		}
+		else
+		{
+			$parseline .= "$table}";
+			$table = 0;
+		}
+	}
 	
 	if($line =~ /\<img(.*)(\>)+(.*)/)
 	{
