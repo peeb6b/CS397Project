@@ -14,15 +14,16 @@
 
 use File::MimeInfo;
 
-my $file = "HW1.docx";
+my $infile = "HW1.docx";
+my $outfile = "output.txt";
 
 # Look for file extension
-$file =~ /\.([a-zA-Z0-9]*)/ ;
+$infile =~ /\.([a-zA-Z0-9]*)/ ;
 if ( $1 == "docx" )
 {
   print "this is a docx file\n";
   #Change this to the appropriate directory k
-  system("/usr/bin/perl '/home/dewmugg/Class Stuff/Fall 2011/CS 397/CS397Project/docxToTWiki.pl' ");
+  system("/usr/bin/perl '/home/dewmugg/Class Stuff/Fall 2011/CS 397/CS397Project/docxToTWiki.pl' $infile $outfile ");
 }
 elsif ( $1 == "tex" )
 {
