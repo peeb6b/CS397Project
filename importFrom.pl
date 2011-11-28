@@ -21,7 +21,8 @@ $file =~ /\.([a-zA-Z0-9]*)/ ;
 if ( $1 == "docx" )
 {
   print "this is a docx file\n";
-  # Call docx importer
+  #Change this to the appropriate directory k
+  system("/usr/bin/perl '/home/dewmugg/Class Stuff/Fall 2011/CS 397/CS397Project/docxToTWiki.pl' ");
 }
 elsif ( $1 == "tex" )
 {
