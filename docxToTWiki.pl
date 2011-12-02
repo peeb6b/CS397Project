@@ -232,18 +232,27 @@ while (/<Relationship Id="(.*?)" Type=".*?\/([^\/]*?)" Target="(.*?)"( .*?)?\/>/
 
 
 #
-# Subroutines for center and right justification of text in a line.
+# Subroutines for center, right, & both justification of text in a line.
 #
 
 sub justify {
     my $len = length $_[1];
 
-    if ($_[0] eq "center" && $len < ($lineWidth - 1)) {
-        return ' ' x (($lineWidth - $len) / 2) . $_[1];
-    } elsif ($_[0] eq "right" && $len < $lineWidth) {
-        return ' ' x ($lineWidth - $len) . $_[1];
-    } else {
-        return $_[1];
+    if ($_[0] eq "center" && $len < ($lineWidth - 1))
+    {
+        return '<p align="center">'.$_[1]."</p>";
+    } 
+    elsif ($_[0] eq "right" && $len < $lineWidth)
+    {
+        return '<p align="right">'.$_[1]."</p>";
+    } 
+    elsif ($_[0] eq "both" && $len < $lineWidth)
+    {
+        return '<p align="justify">'.$_[1]."</p>";
+    }
+    else
+    {
+      return $_[1];
     }
 }
 
@@ -271,6 +280,7 @@ sub processParagraph {
     my $align = $1 if ($_[0] =~ /<w:jc w:val="([^"]*?)"\/>/);
     
     print "\n----\n".$para."\n---n";
+  
   my $begStatus = "";
   my $endStatus = "";
 
@@ -300,10 +310,16 @@ sub processParagraph {
     $endStatus .= "</s>";
   }
   
+
+# Bulleted List
+
+# Numbered List
+  
   
 
 
     $para =~ s/<.*?>//og;
+    
     return justify($align,$para) if $align;
 
     return $begStatus.$para.$endStatus;
