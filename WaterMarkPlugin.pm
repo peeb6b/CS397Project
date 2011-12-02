@@ -20,20 +20,20 @@ sub initPlugin {
 sub _WATER {
     my($session, $params, $theTopic, $theWeb) = @_;
     
-	my $opacity = $params->{Opacity};
+	my $opacity = $params->{opacity};
 	if(!$opacity)
 	{
 		$opacity = 10;
 	}
 	my $opacdeg = $opacity/100;
-	my $text = $params->{Text};
-	my $image = $params->{Image};
+	my $text = $params->{text};
+	my $image = $params->{image};
 	
 	my $print_text = "<literal><div style=\"position:fixed; top:30%; left:40%; opacity:$opacdeg; filter:alpha(opacity=$opacity); font-size:3em; font-color: black;\">";
 	
 	if($image)
 	{
-		$print_text .= "<img src=\"%ATTACHURL%/Johnny_Bravo_by_BGGaLaXy.jpg\" width = \"525 px\" height=\"375 px\" alt=\"watermark\"/>"
+		$print_text .= "<img src=\"%ATTACHURL%/".$image."\" width = \"525 px\" height=\"375 px\" alt=\"watermark\"/>"
 	}
 	elsif($text)
 	{
