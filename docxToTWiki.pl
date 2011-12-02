@@ -360,10 +360,6 @@ $content =~ s|<w:numPr><w:ilvl w:val="([0-9]+)"/>|$listIndent x $1 . "$levchar[$
 # $content =~ s|<w:numPr><w:ilvl w:val="([0-9]+)"/>|$listIndent x $1 . '* '|oge;
 # $content =~ s|<w:numPr><w:ilvl w:val="([0-9]+)"/>|'*' x ($1+1) . ' '|oge;
 
-# Tags in OfficeOpenXML all start with <w:_taggoeshere_>
-# Basically tags are applied at the beginning of a run of text denoted by
-# <w:r>
-
 $content =~ s{<w:caps/>.*?(<w:t>|<w:t [^>]+>)(.*?)</w:t>}/uc $2/oge;
 
 $content =~ s{<w:hyperlink r:id="(.*?)".*?>(.*?)</w:hyperlink>}/hyperlink($1,$2)/oge;
