@@ -2,13 +2,11 @@
 
 # Programmer: Paul Eggler
 # Date:       11/14/2011
-# File:       exportTo.pl
-# Purpose:    This script will
-#               -get the current file type
-#               -call the appropriate parser.
+# File:       docxToTWiki.pl
+# Purpose:    This script will take an input .docx file and output
+#             the file in html
 
 print "WE CALLED THE MOTHERFUCKING FILE BITCH\n";
-
 
 #!/usr/bin/env perl
 
@@ -60,10 +58,10 @@ my %escChrs = (	amp => '&', gt => '>', lt => '<',
 my %splchars = (
 	"\xC2\xA0" => ' ',		# <nbsp>
 	"\xC2\xA6" => '|',		# <brokenbar>
-	"\xC2\xA9" => '(C)',		# <copyright>
+	"\xC2\xA9" => '(C)',	# <copyright>
 	"\xC2\xAB" => '<<',		# <laquo>
 	"\xC2\xAC" => '-',		# <negate>
-	"\xC2\xAE" => '(R)',		# <regd>
+	"\xC2\xAE" => '(R)',	# <regd>
 	"\xC2\xB1" => '+-',		# <plusminus>
 	"\xC2\xBB" => '>>',		# <raquo>
 
