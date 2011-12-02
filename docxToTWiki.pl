@@ -271,14 +271,42 @@ sub processParagraph {
     my $align = $1 if ($_[0] =~ /<w:jc w:val="([^"]*?)"\/>/);
     
     print "\n----\n".$para."\n---n";
-    
-    $para =~ s/<w:b/>.*?(<w:t>|<w:t [^>]+>)(.*?)</w:t>//"<b>".$2."<\/b>"/oge;
+  my $begStatus = "";
+  my $endStatus = "";
+
+# Bold
+  if( $para =~ /<w:rPr>(.*?)<w:b\/>(.*?)<\/w:rPr>/ )
+  {
+    $begStatus .= "<b>";
+    $endStatus .= "</b>";
+  }
+# Italic
+  if( $para =~ /<w:rPr>(.*?)<w:i\/>(.*?)<\/w:rPr>/ )
+  {
+    $begStatus .= "<i>";
+    $endStatus .= "</i>";
+  }
+# Underline
+  if( $para =~ /<w:rPr>(.*?)<w:u (.*?)\/>(.*?)<\/w:rPr>/ )
+  {
+    $begStatus .= "<u>";
+    $endStatus .= "</u>";
+  }
+
+# Strikethrough
+  if( $para =~ /<w:rPr>(.*?)<w:strike\/>(.*?)<\/w:rPr>/ )
+  {
+    $begStatus .= "<s>";
+    $endStatus .= "</s>";
+  }
+  
+  
 
 
     $para =~ s/<.*?>//og;
     return justify($align,$para) if $align;
 
-    return $para;
+    return $begStatus.$para.$endStatus;
 }
 
 
@@ -330,7 +358,7 @@ $content =~ s{<w:p [^/>]+?/>|</w:p>|<w:br/>}|$newLine|og;
 
 
 
-$content =~ s/<.*?>//og;
+# $content =~ s/<.*?>//og;
 
 
 #
