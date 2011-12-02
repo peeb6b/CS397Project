@@ -14,7 +14,7 @@
 
 use File::MimeInfo;
 
-my $infile = "HW1.docx";
+my $infile = "testdocxfile.docx";
 my $outfile = "output.txt";
 
 # Look for file extension
