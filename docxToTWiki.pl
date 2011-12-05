@@ -283,7 +283,7 @@ sub processParagraph {
   
   my $begStatus = "";
   my $endStatus = "";
-
+ 
 # Bold
   if( $para =~ /<w:rPr>(.*?)<w:b\/>(.*?)<\/w:rPr>/ )
   {
@@ -313,9 +313,21 @@ sub processParagraph {
 
 # Bulleted List
 
-# Numbered List
-  
-  
+
+
+# Numbered/Ordered List
+#<ol>
+#<li>Coffee</li>
+#<li>Milk</li>
+#</ol>
+
+# We need figure out how to the start and end of the list in ooxml
+
+  if( $para =~ /<w:pStyle w:val="ListParagraph"\/>(.*?)<w:numId w:val="1"\/>(.*?)<\/w:numPr>/ )
+  {
+    $begStatus .= "<ol>";
+    $endStatus .= "</ul>";
+  }
 
 
     $para =~ s/<.*?>//og;
@@ -350,7 +362,11 @@ $content =~ s{<w:(tab|noBreakHyphen|softHyphen)/>}|$tag2chr{$1}|og;
 my $hr = '-' x $lineWidth . $newLine;
 $content =~ s|<w:pBdr>.*?</w:pBdr>|$hr|og;
 
-$content =~ s|<w:numPr><w:ilvl w:val="([0-9]+)"/>|$listIndent x $1 . "$levchar[$1] "|oge;
+
+#if ($content =~ s|<w:numPr><w:ilvl w:val="([0-9]+)"/>|$listIndent x $1 . "$levchar[$1] "|oge)
+#{
+#  
+#}
 
 #
 # Uncomment either of below two lines and comment above line, if dealing
