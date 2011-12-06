@@ -38,7 +38,7 @@ our $newLine = "\n";		# Alternative is "\r\n".
 our $listIndent = "  ";		# Indent nested lists by "\t", " " etc.
 our $lineWidth = 80;		# Line width, used for short line justification.
 our $showHyperLink = "N";	# Show hyperlink alongside linked text.
-
+our $lastListType = ""; #Keeps track of the last list element that we parsed.
 
 # ToDo: Better list handling. Currently assumed 8 level nesting.
 my @levchar = ('*', '+', 'o', '-', '**', '++', 'oo', '--');
@@ -283,7 +283,8 @@ sub processParagraph {
   
   my $begStatus = "";
   my $endStatus = "";
- 
+  my $begList = "";
+  my $endList = "";
 # Bold
   if( $para =~ /<w:rPr>(.*?)<w:b\/>(.*?)<\/w:rPr>/ )
   {
@@ -323,15 +324,34 @@ sub processParagraph {
 
 # We need figure out how to the start and end of the list in ooxml
 
-  if( $para =~ /<w:pStyle w:val="ListParagraph"\/>(.*?)<w:numId w:val="1"\/>(.*?)<\/w:numPr>/ )
+
+#Check to see if we have found a list
+  if( $para =~ /<w:pStyle w:val="ListParagraph"\/>(.*?)<\/w:numPr>/ )
   {
-    $begStatus .= "<ol>";
-    $endStatus .= "</ul>";
+    # Check to see if the list element is from the same list
+    $para =~ /<w:numId w:val="([0-9]+)"\/>/;
+    if($1 == $lastListType)
+    {
+      $1 == $lastListType;
+    }
+    # A bulleted or unordered list
+    elsif( $1 == 1 )
+    {
+      $begStatus .= "<ul>";
+      $endStatus .= "</ul>";
+      $lastListType .= 1;
+    }
+    # A numbered or ordered list.
+    elsif( $1 == 3 )
+    {
+      $begStatus .= "<ol>";
+      $endStatus .= "</ol>";
+      $lastListType = 3;
+    }
+    $begStatus .= "<li>";
+    $endStatus .= "</li>";
   }
-
-
     $para =~ s/<.*?>//og;
-    
     return justify($align,$para) if $align;
 
     return $begStatus.$para.$endStatus;
