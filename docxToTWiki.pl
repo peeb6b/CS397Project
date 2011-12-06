@@ -310,20 +310,6 @@ sub processParagraph {
     $begStatus .= "<s>";
     $endStatus .= "</s>";
   }
-  
-
-# Bulleted List
-
-
-
-# Numbered/Ordered List
-#<ol>
-#<li>Coffee</li>
-#<li>Milk</li>
-#</ol>
-
-# We need figure out how to the start and end of the list in ooxml
-
 
 #Check to see if we have found a list
   if( $para =~ /<w:pStyle w:val="ListParagraph"\/>(.*?)<\/w:numPr>/ )
@@ -332,24 +318,37 @@ sub processParagraph {
     $para =~ /<w:numId w:val="([0-9]+)"\/>/;
     if($1 == $lastListType)
     {
-      $1 == $lastListType;
+      #$1 = $lastListType;
     }
     # A bulleted or unordered list
     elsif( $1 == 1 )
     {
-      $begStatus .= "<ul>";
-      $endStatus .= "</ul>";
-      $lastListType .= 1;
+      $begStatus .= "\n<ul>";
+      # $endStatus .= "</ul>\n";
+      $lastListType = 1;
     }
     # A numbered or ordered list.
     elsif( $1 == 3 )
     {
-      $begStatus .= "<ol>";
-      $endStatus .= "</ol>";
+      $begStatus .= "\n<ol>";
+      # $endStatus .= "</ol>\n";
       $lastListType = 3;
     }
-    $begStatus .= "<li>";
-    $endStatus .= "</li>";
+    $begStatus .= "\n<li>\n";
+    $endStatus = "</li>\n$endStatus";
+  }
+  else
+  {
+    if($lastListType == 1)
+    {
+      $begStatus .= "</ul>\n";
+    }
+    elsif($lastListType == 3)
+    {
+      $begStatus .= "</ol>\n";
+    }
+    
+    $lastListType = "";
   }
     $para =~ s/<.*?>//og;
     return justify($align,$para) if $align;
