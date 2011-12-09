@@ -38,7 +38,8 @@ our $newLine = "\n";		# Alternative is "\r\n".
 our $listIndent = "  ";		# Indent nested lists by "\t", " " etc.
 our $lineWidth = 80;		# Line width, used for short line justification.
 our $showHyperLink = "N";	# Show hyperlink alongside linked text.
-our $lastListType = ""; #Keeps track of the last list element that we parsed.
+our $endlist = "";
+our @listStack; #Keeps all the same list elements on a stack
 
 # ToDo: Better list handling. Currently assumed 8 level nesting.
 my @levchar = ('*', '+', 'o', '-', '**', '++', 'oo', '--');
@@ -240,19 +241,19 @@ sub justify {
 
     if ($_[0] eq "center" && $len < ($lineWidth - 1))
     {
-        return '<p align="center">'.$_[1]."</p>";
+        return $_[2].'<p align="center">'.$_[1]."</p>".$newLine;
     } 
     elsif ($_[0] eq "right" && $len < $lineWidth)
     {
-        return '<p align="right">'.$_[1]."</p>";
+        return $_[2].'<p align="right">'.$_[1]."</p>".$newLine;
     } 
     elsif ($_[0] eq "both" && $len < $lineWidth)
     {
-        return '<p align="justify">'.$_[1]."</p>";
+        return $_[2].'<p align="justify">'.$_[1]."</p>".$newLine;
     }
     else
     {
-      return $_[1];
+      return $_[2].$_[1];
     }
 }
 
@@ -276,15 +277,15 @@ sub hyperlink {
 #
 
 sub processParagraph {
-    my $para = $_[0] . "$newLine";
-    my $align = $1 if ($_[0] =~ /<w:jc w:val="([^"]*?)"\/>/);
-    
-    print "\n----\n".$para."\n---n";
+  my $para = $_[0];  # . "$newLine";
+  my $align = $1 if ($_[0] =~ /<w:jc w:val="([^"]*?)"\/>/);
+  
+  #print "\n----\n".$para."\n---n";
   
   my $begStatus = "";
   my $endStatus = "";
-  my $begList = "";
-  my $endList = "";
+  my $lastList = "";
+  $endlist = "";
 # Bold
   if( $para =~ /<w:rPr>(.*?)<w:b\/>(.*?)<\/w:rPr>/ )
   {
@@ -311,49 +312,66 @@ sub processParagraph {
     $endStatus .= "</s>";
   }
 
-#Check to see if we have found a list
-  if( $para =~ /<w:pStyle w:val="ListParagraph"\/>(.*?)<\/w:numPr>/ )
+# Check to see if we have found a list
+  if($para =~ /<w:numId w:val="([0-9]+)"\/>/)
   {
-    # Check to see if the list element is from the same list
-    $para =~ /<w:numId w:val="([0-9]+)"\/>/;
-    if($1 == $lastListType)
+    $lastList = pop(@lastListType);
+    if($lastList == "") #Last thing we processed was not a list
     {
-      #$1 = $lastListType;
+      push(@lastListType, $1);
+      if($lastListType[-1] == 1)
+      {
+        $begStatus .= "<ul>".$newLine;
+      }
+      elsif($lastListType[-1] == 3)
+      {
+        $begStatus .= "<ol>".$newLine;
+      }
     }
-    # A bulleted or unordered list
-    elsif( $1 == 1 )
+    else  # Array is not empty so the last thing we processed was a list
     {
-      $begStatus .= "\n<ul>";
-      # $endStatus .= "</ul>\n";
-      $lastListType = 1;
+      # We are on a different list than the last one
+      push(@lastListType, $1);
+      if($lastList != $1)
+      {
+        push(@lastListType, $1);
+        # Old list was ordered new is unordered
+        if($lastListType[-1] == 1)
+        {
+          #Close <ol> open <ul>
+          $begStatus .= "</ol>".$newLine."<ul>".$newLine;
+        }
+        elsif($lastListType[-1] == 3)
+        {
+          #Close <ul> open <ol>
+          $begStatus .= "</ul>".$newLine."<ol>".$newLine;
+        }
+      }
     }
-    # A numbered or ordered list.
-    elsif( $1 == 3 )
-    {
-      $begStatus .= "\n<ol>";
-      # $endStatus .= "</ol>\n";
-      $lastListType = 3;
-    }
-    $begStatus .= "\n<li>\n";
-    $endStatus = "</li>\n$endStatus";
+    $begStatus .= "<li>";
+    $endStatus .= "</li>";
   }
+  # We are not processing a list and have left a list tag open.
+ 
   else
   {
-    if($lastListType == 1)
+    $lastList = pop(@lastListType);
+    if($lastList == 1)
     {
-      $begStatus .= "</ul>\n";
+      #Close <ul>
+      $endlist .= "</ul>".$newLine;
     }
-    elsif($lastListType == 3)
+    elsif($lastList == 3)
     {
-      $begStatus .= "</ol>\n";
+      #Close <ol>
+      $endlist .= "</ol>".$newLine;
     }
-    
-    $lastListType = "";
   }
-    $para =~ s/<.*?>//og;
-    return justify($align,$para) if $align;
-
-    return $begStatus.$para.$endStatus;
+    
+  
+  $para =~ s/<.*?>//og;
+  return justify($align,$para,$endlist) if $align;
+  return $begStatus.$para.$endStatus.$newLine;
 }
 
 
@@ -381,12 +399,6 @@ $content =~ s{<w:(tab|noBreakHyphen|softHyphen)/>}|$tag2chr{$1}|og;
 my $hr = '-' x $lineWidth . $newLine;
 $content =~ s|<w:pBdr>.*?</w:pBdr>|$hr|og;
 
-
-#if ($content =~ s|<w:numPr><w:ilvl w:val="([0-9]+)"/>|$listIndent x $1 . "$levchar[$1] "|oge)
-#{
-#  
-#}
-
 #
 # Uncomment either of below two lines and comment above line, if dealing
 # with more than 8 level nested lists.
@@ -395,17 +407,21 @@ $content =~ s|<w:pBdr>.*?</w:pBdr>|$hr|og;
 # $content =~ s|<w:numPr><w:ilvl w:val="([0-9]+)"/>|$listIndent x $1 . '* '|oge;
 # $content =~ s|<w:numPr><w:ilvl w:val="([0-9]+)"/>|'*' x ($1+1) . ' '|oge;
 
+# s treats string as a single line
 $content =~ s{<w:caps/>.*?(<w:t>|<w:t [^>]+>)(.*?)</w:t>}/uc $2/oge;
 
+# 
 $content =~ s{<w:hyperlink r:id="(.*?)".*?>(.*?)</w:hyperlink>}/hyperlink($1,$2)/oge;
 
+# 
 $content =~ s/<w:p [^>]+?>(.*?)<\/w:p>/processParagraph($1)/oge;
 
+# Paul
 $content =~ s{<w:p [^/>]+?/>|</w:p>|<w:br/>}|$newLine|og;
 
 
 
-# $content =~ s/<.*?>//og;
+$content =~ s/<(w:|\/w:|\?).*?>//og;
 
 
 #
@@ -429,6 +445,7 @@ $content =~ s/((&)([a-z]+)(;))/($escChrs{lc $3} ? $escChrs{lc $3} : $1)/ioge;
 #
 # Write the extracted and converted text contents to output.
 #
+
 
 print $txtfile $content;
 close $txtfile;
