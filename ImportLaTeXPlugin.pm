@@ -1,6 +1,6 @@
 package TWiki::Plugins::ImportLaTeXPlugin;
 use strict;
-#use TEXT::CSV;
+
 use vars qw( $VERSION $RELEASE $SHORTDESCRIPTION $debug $pluginName $NO_PREFS_IN_TOPIC );
 $VERSION = '0.1';
 $RELEASE = '0.1';
@@ -8,7 +8,7 @@ $SHORTDESCRIPTION = 'Import .tex files, converts to a twiki topic';
 $NO_PREFS_IN_TOPIC = 0;
 $pluginName = 'ImportLaTeXPlugin';
 
-sub Table_Parse
+sub Table_Parse #parse table as from LaTeX to HTML/TWiki
 {
 	my ($text, $schema) = @_; 
 	$text =~ s/\\hfill|\\hline//g;
@@ -16,18 +16,21 @@ sub Table_Parse
 	$text =~ s/\\\\/\n/g;
 	$schema =~ s/\|//g;
 	$schema =~ s/\s+//g;
+	
 	my $returntext = "";
 	my @splitline = split /\n/, $text;
 	my @splittext;
 	my @splitschema= split '', $schema;
+	
 	my $align;
+	
 	my($i,$j) = 0;
 		
 	for $i (0..$#splitline)
 	{
 		if(!($splitline[$i] =~ /^\s*$/))
 		{
-		$returntext .= "\n<tr>\n";
+		$returntext .= "<tr>";
 		@splittext = split /&/, @splitline[$i];
 		for $j (0..$#splittext)
 		{
@@ -50,126 +53,147 @@ sub Table_Parse
 			
 			$returntext .= "<td align = '".$align."'>".$splittext[$j]."</td>";
 		}
-		$returntext .= "\n</tr>\n";
+		$returntext .= "</tr>";
 		}
 	}
 	
 	return $returntext;
 }
 
-sub New_Parse
+sub New_Parse#Split file at tags, parse both splits in a recurse way, think merge sort but parsing rather than sorting
 {
 	my ($text,@status) = @_;
-	my @oldstatus = @status;
+	my @oldstatus = @status;#status stack need for nested formats
 		
 			if($text=~ /^\s*$/)#Whitespace
 			{
 				return ""; 
 			}
 			
-			if($text=~ /((\n|.)*)\\begin\{document\}((\n|.)*)/)
+			if($text=~ /((\n|.)*)\\begin\{document\}((\n|.)*)/)#beginning of document body
 			{
-				push (@status, "main");
-				return "".New_Parse($3,@status);
+				push (@status, "main");#push current status as main body
+				return "".New_Parse($3,@status);#split and parse
 			}
-			elsif($text=~ /((\n|.)*?)\%((.)*)(\n)?((\n|.)*)/)
+			elsif($text=~ /((\n|.)*?)\%((.)*)(\n)?((\n|.)*)/)#commented text, will not appear in topic, but appear in source
 			{
 				return New_Parse($1,@status)."<!--".$3."-->".New_Parse($6,@status);
 			}
-			elsif($text=~ /((\n|.)*)\\begin\{equation\}((\n|.)*)\\end\{equation\}((\n|.)*)/)
+			elsif($text=~ /((\n|.)*)\\begin\{equation\}((\n|.)*)\\end\{equation\}((\n|.)*)/)#equations are handled by LaTeX Plugin Mode as they required advance formatting
 			{
-				return New_Parse($1,@status)."BEGINLATEX<br />".$3."<br /> ENDLATEX".New_Parse($5,@status);
+				return New_Parse($1,@status)."%BEGINLATEX%\n".$3."\n%ENDLATEX%".New_Parse($5,@status);
 			}
-			elsif($text=~ /((\n|.)*)\\begin\{tabular\}\{((.)*)\}((\n|.)*)\\end\{tabular\}((\n|.)*)/)
+			elsif($text=~ /((\n|.)*)\\includegraphics\[(.*)\]\{(.*)\}((\n|.)*)/)#Image tags
+			{
+				#$3 needs to be parsed
+				return New_Parse($1,@status)."<img $3 src='%ATTACHURL%/".$4."' alt='$4' />".New_Parse($5,@status);#Image needs to be attached also
+			}
+			elsif($text=~ /((\n|.)*)\\begin\{tabular\}\{((.)*)\}((\n|.)*)\\end\{tabular\}((\n|.)*)/)#tables
 			{
 				return New_Parse($1,@status)."<table border=1>".Table_Parse($5,$3)."</table>".New_Parse($7,@status);
 			}
-			elsif($text=~ /((\n|.)*)\\begin\{enumerate\}((\n|.)*)\\end\{enumerate\}((\n|.)*)/)
+			elsif($text=~ /((\n|.)*)\\begin\{enumerate\}((\n|.)*)\\end\{enumerate\}((\n|.)*)/)#numbered list
 			{
 				push (@status, "enumerate");
-				return New_Parse($1,@oldstatus)."\n<ol>\n".New_Parse($3,@status)."\n</ol>\n".New_Parse($5,@oldstatus);
+				return New_Parse($1,@oldstatus)."<ol>".New_Parse($3,@status)."</ol>".New_Parse($5,@oldstatus);
 			}
-			elsif($text=~ /((\n|.)*)\\begin\{itemize\}((\n|.)*)\\end\{itemize\}((\n|.)*)/)
+			elsif($text=~ /((\n|.)*)\\begin\{itemize\}((\n|.)*)\\end\{itemize\}((\n|.)*)/)#bulleted list
 			{
 				push(@status, "itemize");
-				return New_Parse($1,@oldstatus)."\n<ul>\n".New_Parse($3,@status)."\n</ul>\n".New_Parse($5,@oldstatus);
+				return New_Parse($1,@oldstatus)."<ul>".New_Parse($3,@status)."</ul>".New_Parse($5,@oldstatus);
 			}
-			elsif($text=~ /((\n|.)*)\\begin\{flushright\}((\n|.)*)\\end\{flushright\}((\n|.)*)/)
+			elsif($text=~ /((\n|.)*)\\begin\{description\}((\n|.)*)\\end\{description\}((\n|.)*)/)#definition list
+			{
+				push (@status, "description");
+				return New_Parse($1,@oldstatus)."<dl>".New_Parse($3,@status)."</dl>".New_Parse($5,@oldstatus);
+			}
+			elsif($text=~ /((\n|.)*)\\begin\{flushright\}((\n|.)*)\\end\{flushright\}((\n|.)*)/)#right alignment
 			{
 				push(@status, "rightalign");
-				return New_Parse($1,@oldstatus)."\n<p align=\"right\">\n".New_Parse($3,@status)."\n</p>\n".New_Parse($5,@oldstatus);
+				return New_Parse($1,@oldstatus)."<p align='right'>".New_Parse($3,@status)."</p>".New_Parse($5,@oldstatus);
 			}
-			elsif($text=~ /((\n|.)*)\\begin\{center\}((\n|.)*)\\end\{center\}((\n|.)*)/)
+			elsif($text=~ /((\n|.)*)\\begin\{center\}((\n|.)*)\\end\{center\}((\n|.)*)/)#left alingment
 			{
 				push(@status, "centeralign");
-				return New_Parse($1,@oldstatus)."\n<p align=\"center\">\n".New_Parse($3,@status)."\n</p>\n".New_Parse($5,@oldstatus);
+				return New_Parse($1,@oldstatus)."<p align=\"center\">".New_Parse($3,@status)."</p>".New_Parse($5,@oldstatus);
 			}
-			elsif($text=~ /((\n|.)*?)\\item((.)*)(\n)?((\n|.)*)/)
+			elsif($text=~ /((\n|.)*?)\\item((.)*)(\n)?((\n|.)*)/)#item tag, used by list and definitions
 			{
-				push(@status,"listitem");
-				return New_Parse($1,@oldstatus)."<li>".New_Parse($3,@status)."</li>".New_Parse($6,@oldstatus);
+				if(pop @status eq "description")
+				{
+					my $itemline = $3;
+					my $startline = $1;
+					my $endline = $6;
+					$itemline =~ /\[(.*)\](.*)/;
+					push(@status,"defitem");
+					return New_Parse($startline,@oldstatus)."<dt>".New_Parse($1,@status)."</dt>"."<dd>".New_Parse($2,@status)."</dd>".New_Parse($endline,@oldstatus);
+				}
+				else
+				{
+					push(@status,"listitem");
+					return New_Parse($1,@oldstatus)."<li>".New_Parse($3,@status)."</li>".New_Parse($6,@oldstatus);
+				}	
 			}
-			elsif($text=~ /((\n|.)*?)((\\textit)|(\\textbf)|(\\section)|(\\subsection))\{((\n|.)*)/)
+			elsif($text=~ /((\n|.)*?)((\\textit)|(\\textbf)|(\\section)|(\\subsection))\{((\n|.)*)/)#these are treated as the same tag because they end with an ambiguous "}"
 			{
 				if($3 eq "\\textit")
 				{
 					push(@status,"ital");
-					return New_Parse($1,@oldstatus)."\n<i>\n".New_Parse($8,@status);
+					return New_Parse($1,@oldstatus)."<i>".New_Parse($8,@status);
 				}
 				elsif($3 eq "\\textbf")
 				{	
 					push(@status,"bold");
-					return New_Parse($1,@oldstatus)."\n<b>\n".New_Parse($8,@status);
+					return New_Parse($1,@oldstatus)."<b>".New_Parse($8,@status);
 				}
 				elsif($3 eq "\\section")
 				{	
 					push(@status,"section");
-					return New_Parse($1,@oldstatus)."\n<h1>\n".New_Parse($8,@status);
+					return New_Parse($1,@oldstatus)."<h1>".New_Parse($8,@status);
 				}
 				elsif($3 eq "\\subsection")
 				{	
 					push(@status,"subsection");
-					return New_Parse($1,@oldstatus)."\n<h2>\n".New_Parse($8,@status);
+					return New_Parse($1,@oldstatus)."<h2>".New_Parse($8,@status);
 				}
 			}
-			elsif($text=~ /((\n|.)*?)[\}]((\n|.)*)/)
+			elsif($text=~ /((\n|.)*?)[\}]((\n|.)*)/)#the ambiguos "}"
 			{
 				my $layer = pop @status;
-				if($1=~ /((\n|.)*)\\end\{document/)
+				if($1=~ /((\n|.)*)\\end\{document/)#sometimes checks for "}" before \end{document} this fixes that
 				{	
-					return $1."\n</body>\n</html>";
+					return $1."\n";
 				}
 				if($layer eq "ital")
 				{
-					return $1."\n</i>\n".New_Parse($3,@status);
+					return $1."</i>".New_Parse($3,@status);
 				}
 				elsif($layer eq "bold")
 				{
-					return $1."\n</b>\n".New_Parse($3,@status);
+					return $1."</b>".New_Parse($3,@status);
 				}
 				elsif($layer eq "section")
 				{
-					return $1."\n</h1>\n".New_Parse($3,@status);
+					return $1."</h1>".New_Parse($3,@status);
 				}
 				elsif($layer eq "subsection")
 				{
-					return $1."\n</h2>\n".New_Parse($3,@status);
+					return $1."</h2>".New_Parse($3,@status);
 				}
 				else
 				{
-					return $1."\n</d>\n".New_Parse($3,@status);
+					return $1."</error>".New_Parse($3,@status);
 				}
 			}
-			elsif($text=~ /((\n|.)*?)(\\\\|\\hfill)((\n|.)*)/)
+			elsif($text=~ /((\n|.)*?)(\\\\|\\hfill)((\n|.)*)/)#newlines / break lines
 			{
-				return New_Parse($1,@status)."\n<br/>\n".New_Parse($4,@status);
+				return New_Parse($1,@status)."<br/>".New_Parse($4,@status);
 			}
-			elsif($text=~ /((\n|.)*)"\\end\{document\}/)
+			elsif($text=~ /((\n|.)*)"\\end\{document\}/)#end of document
 			{
 				return $1."\n";
 			}
 			return $text;
-
 }
 
 
@@ -182,9 +206,7 @@ sub initPlugin {
 }
 
 sub _IMPORT {
-    #my $directory = TWiki::Func::getWorkArea( $pluginName );
-	#TWiki::Func::saveFile("$directory"."/SPY.CSV","");
-	my($session, $params, $theTopic, $theWeb) = @_;
+    my($session, $params, $theTopic, $theWeb) = @_;
 	my $filename = $params->{_DEFAULT};
 	my $filetext = TWiki::Func::readFile("../pub/".$theWeb."/".$theTopic."/".$filename);
 	my $print_text = $filetext;
