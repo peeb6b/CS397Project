@@ -38,7 +38,8 @@ our $newLine = "\n";		# Alternative is "\r\n".
 our $listIndent = "  ";		# Indent nested lists by "\t", " " etc.
 our $lineWidth = 80;		# Line width, used for short line justification.
 our $showHyperLink = "N";	# Show hyperlink alongside linked text.
-
+our $endlist = "";
+our @listStack; #Keeps all the same list elements on a stack
 
 # ToDo: Better list handling. Currently assumed 8 level nesting.
 my @levchar = ('*', '+', 'o', '-', '**', '++', 'oo', '--');
@@ -232,18 +233,27 @@ while (/<Relationship Id="(.*?)" Type=".*?\/([^\/]*?)" Target="(.*?)"( .*?)?\/>/
 
 
 #
-# Subroutines for center and right justification of text in a line.
+# Subroutines for center, right, & both justification of text in a line.
 #
 
 sub justify {
     my $len = length $_[1];
 
-    if ($_[0] eq "center" && $len < ($lineWidth - 1)) {
-        return ' ' x (($lineWidth - $len) / 2) . $_[1];
-    } elsif ($_[0] eq "right" && $len < $lineWidth) {
-        return ' ' x ($lineWidth - $len) . $_[1];
-    } else {
-        return $_[1];
+    if ($_[0] eq "center" && $len < ($lineWidth - 1))
+    {
+        return $_[2].'<p align="center">'.$_[1]."</p>".$newLine;
+    } 
+    elsif ($_[0] eq "right" && $len < $lineWidth)
+    {
+        return $_[2].'<p align="right">'.$_[1]."</p>".$newLine;
+    } 
+    elsif ($_[0] eq "both" && $len < $lineWidth)
+    {
+        return $_[2].'<p align="justify">'.$_[1]."</p>".$newLine;
+    }
+    else
+    {
+      return $_[2].$_[1];
     }
 }
 
@@ -267,18 +277,101 @@ sub hyperlink {
 #
 
 sub processParagraph {
-    my $para = $_[0] . "$newLine";
-    my $align = $1 if ($_[0] =~ /<w:jc w:val="([^"]*?)"\/>/);
+  my $para = $_[0];  # . "$newLine";
+  my $align = $1 if ($_[0] =~ /<w:jc w:val="([^"]*?)"\/>/);
+  
+  #print "\n----\n".$para."\n---n";
+  
+  my $begStatus = "";
+  my $endStatus = "";
+  my $lastList = "";
+  $endlist = "";
+# Bold
+  if( $para =~ /<w:rPr>(.*?)<w:b\/>(.*?)<\/w:rPr>/ )
+  {
+    $begStatus .= "<b>";
+    $endStatus .= "</b>";
+  }
+# Italic
+  if( $para =~ /<w:rPr>(.*?)<w:i\/>(.*?)<\/w:rPr>/ )
+  {
+    $begStatus .= "<i>";
+    $endStatus .= "</i>";
+  }
+# Underline
+  if( $para =~ /<w:rPr>(.*?)<w:u (.*?)\/>(.*?)<\/w:rPr>/ )
+  {
+    $begStatus .= "<u>";
+    $endStatus .= "</u>";
+  }
+
+# Strikethrough
+  if( $para =~ /<w:rPr>(.*?)<w:strike\/>(.*?)<\/w:rPr>/ )
+  {
+    $begStatus .= "<s>";
+    $endStatus .= "</s>";
+  }
+
+# Check to see if we have found a list
+  if($para =~ /<w:numId w:val="([0-9]+)"\/>/)
+  {
+    $lastList = pop(@lastListType);
+    if($lastList == "") #Last thing we processed was not a list
+    {
+      push(@lastListType, $1);
+      if($lastListType[-1] == 1)
+      {
+        $begStatus .= "<ul>".$newLine;
+      }
+      elsif($lastListType[-1] == 3)
+      {
+        $begStatus .= "<ol>".$newLine;
+      }
+    }
+    else  # Array is not empty so the last thing we processed was a list
+    {
+      # We are on a different list than the last one
+      push(@lastListType, $1);
+      if($lastList != $1)
+      {
+        push(@lastListType, $1);
+        # Old list was ordered new is unordered
+        if($lastListType[-1] == 1)
+        {
+          #Close <ol> open <ul>
+          $begStatus .= "</ol>".$newLine."<ul>".$newLine;
+        }
+        elsif($lastListType[-1] == 3)
+        {
+          #Close <ul> open <ol>
+          $begStatus .= "</ul>".$newLine."<ol>".$newLine;
+        }
+      }
+    }
+    $begStatus .= "<li>";
+    $endStatus .= "</li>";
+  }
+  # We are not processing a list and have left a list tag open.
+ 
+  else
+  {
+    $lastList = pop(@lastListType);
+    if($lastList == 1)
+    {
+      #Close <ul>
+      $endlist .= "</ul>".$newLine;
+    }
+    elsif($lastList == 3)
+    {
+      #Close <ol>
+      $endlist .= "</ol>".$newLine;
+    }
+  }
     
-    print "\n----\n".$para."\n---n";
-    
-    $para =~ s/<w:b/>.*?(<w:t>|<w:t [^>]+>)(.*?)</w:t>//"<b>".$2."<\/b>"/oge;
-
-
-    $para =~ s/<.*?>//og;
-    return justify($align,$para) if $align;
-
-    return $para;
+  
+  $para =~ s/<.*?>//og;
+  return justify($align,$para,$endlist) if $align;
+  return $begStatus.$para.$endStatus.$newLine;
 }
 
 
@@ -306,8 +399,6 @@ $content =~ s{<w:(tab|noBreakHyphen|softHyphen)/>}|$tag2chr{$1}|og;
 my $hr = '-' x $lineWidth . $newLine;
 $content =~ s|<w:pBdr>.*?</w:pBdr>|$hr|og;
 
-$content =~ s|<w:numPr><w:ilvl w:val="([0-9]+)"/>|$listIndent x $1 . "$levchar[$1] "|oge;
-
 #
 # Uncomment either of below two lines and comment above line, if dealing
 # with more than 8 level nested lists.
@@ -316,21 +407,21 @@ $content =~ s|<w:numPr><w:ilvl w:val="([0-9]+)"/>|$listIndent x $1 . "$levchar[$
 # $content =~ s|<w:numPr><w:ilvl w:val="([0-9]+)"/>|$listIndent x $1 . '* '|oge;
 # $content =~ s|<w:numPr><w:ilvl w:val="([0-9]+)"/>|'*' x ($1+1) . ' '|oge;
 
-# Tags in OfficeOpenXML all start with <w:_taggoeshere_>
-# Basically tags are applied at the beginning of a run of text denoted by
-# <w:r>
-
+# s treats string as a single line
 $content =~ s{<w:caps/>.*?(<w:t>|<w:t [^>]+>)(.*?)</w:t>}/uc $2/oge;
 
+# 
 $content =~ s{<w:hyperlink r:id="(.*?)".*?>(.*?)</w:hyperlink>}/hyperlink($1,$2)/oge;
 
+# 
 $content =~ s/<w:p [^>]+?>(.*?)<\/w:p>/processParagraph($1)/oge;
 
+# Paul
 $content =~ s{<w:p [^/>]+?/>|</w:p>|<w:br/>}|$newLine|og;
 
 
 
-$content =~ s/<.*?>//og;
+$content =~ s/<(w:|\/w:|\?).*?>//og;
 
 
 #
@@ -354,6 +445,7 @@ $content =~ s/((&)([a-z]+)(;))/($escChrs{lc $3} ? $escChrs{lc $3} : $1)/ioge;
 #
 # Write the extracted and converted text contents to output.
 #
+
 
 print $txtfile $content;
 close $txtfile;
