@@ -5,22 +5,6 @@ Currently we are working on
 --Importing From--
 
 .docx
-  Markup
-  -Bold
-  -Italic
-  -Underline
-  -Strikethrough
-  
-  Horizontal Alignment
-  -Left
-  -Right
-  -Center
-  -Justify
-  
-  Lists
-  -Unordered list (Bullets)
-  -Ordered list (Numbers)
-
 .txt
 .tex
 .csv

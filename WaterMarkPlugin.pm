@@ -1,6 +1,5 @@
 package TWiki::Plugins::WaterMarkPlugin;
 use strict;
-#use TEXT::CSV;
 use vars qw( $VERSION $RELEASE $SHORTDESCRIPTION $debug $pluginName $NO_PREFS_IN_TOPIC );
 $VERSION = '0.1';
 $RELEASE = '0.1';
@@ -18,22 +17,32 @@ sub initPlugin {
 }
 
 sub _WATER {
-    my($session, $params, $theTopic, $theWeb) = @_;
+	my($session, $params, $theTopic, $theWeb) = @_;
     
 	my $opacity = $params->{opacity};
 	if(!$opacity)
 	{
 		$opacity = 10;
 	}
-	my $opacdeg = $opacity/100;
+	my $opacdeg = $opacity/100;#need for Internet Explorer
 	my $text = $params->{text};
 	my $image = $params->{image};
+	my $width = $params->{width};
+	my $height = $params->{height};
 	
-	my $print_text = "<literal><div style=\"position:fixed; top:30%; left:40%; opacity:$opacdeg; filter:alpha(opacity=$opacity); font-size:3em; font-color: black;\">";
+	#this plugin is simple, it adds a div that acts as a watermark, that is all
+	my $print_text = "<literal><div style=\"position:fixed; top:20%; left:35%; opacity:$opacdeg; filter:alpha(opacity=$opacity); font-size:3em; font-color: black;\">";
 	
 	if($image)
 	{
-		$print_text .= "<img src=\"%ATTACHURL%/".$image."\" width = \"525 px\" height=\"375 px\" alt=\"watermark\"/>"
+		if ($height && $width)
+		{
+			$print_text .= "<img src=\"%ATTACHURL%/".$image."\" width = \"".$width." px\" height=\"".$height."\" alt=\"watermark\"/>";
+		}
+		else
+		{
+			$print_text .= "<img src=\"%ATTACHURL%/".$image."\" height = '480 px' width = '672 px' alt=\"watermark\"/>";
+		}
 	}
 	elsif($text)
 	{
