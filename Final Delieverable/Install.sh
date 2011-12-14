@@ -16,18 +16,18 @@ read answer
 
 case $answer in
     a|A)    echo "Install Import CSV Plugin"
-            gzip -dc ImportCSVPlugin.tar.gz | (umask 0; cd ..; tar xvf -)
+            tar -xvf ImportCSVPlugin.tar.gz 
     ;;
     b|B)    echo "Install Import LaTeX Plugin"
-            gzip -dc ImportLaTeXPlugin.tar.gz | (umask 0; cd ..; tar xvf -)
+            tar -xvf ImportLaTeXPlugin.tar.gz 
     ;;
     c|C)    echo "Install Import Watermark Plugin"
-            gzip -dc ImportWatermarkPlugin.tar.gz | (umask 0; cd ..; tar xvf -)
+            tar -xvf ImportWatermarkPlugin.tar.gz 
     ;;
     d|D)    echo "Install all TWiki plugins"
-            gzip -dc ImportCSVPlugin.tar.gz | (umask 0; cd ..; tar xvf -)
-            gzip -dc ImportLaTeXPlugin.tar.gz | (umask 0; cd ..; tar xvf -)
-            gzip -dc ImportWatermarkPlugin.tar.gz | (umask 0; cd ..; tar xvf -)
+            tar -xvf ImportCSVPlugin.tar.gz 
+            tar -xvf ImportLaTeXPlugin.tar.gz 
+            tar -xvf ImportWatermarkPlugin.tar.gz 
       *)    echo "You did not choose a, b, c, d"
       ;;
 esac
