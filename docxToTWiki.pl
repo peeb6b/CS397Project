@@ -6,7 +6,7 @@
 # Purpose:    This script will take an input .docx file and output
 #             the file in html
 
-print "WE CALLED THE MOTHERFUCKING FILE BITCH\n";
+print "Begin Perl Script\n";
 
 #!/usr/bin/env perl
 
